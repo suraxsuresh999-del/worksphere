@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../../app/di/auth_providers.dart';
 import '../../../app/router/route_names.dart';
 import '../../common/widgets/ws_button.dart';
@@ -11,10 +12,12 @@ class FreelancerProfileSetupScreen extends ConsumerStatefulWidget {
   const FreelancerProfileSetupScreen({super.key});
 
   @override
-  ConsumerState<FreelancerProfileSetupScreen> createState() => _FreelancerProfileSetupScreenState();
+  ConsumerState<FreelancerProfileSetupScreen> createState() =>
+      _FreelancerProfileSetupScreenState();
 }
 
-class _FreelancerProfileSetupScreenState extends ConsumerState<FreelancerProfileSetupScreen> {
+class _FreelancerProfileSetupScreenState
+    extends ConsumerState<FreelancerProfileSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _bioController = TextEditingController();
@@ -23,6 +26,28 @@ class _FreelancerProfileSetupScreenState extends ConsumerState<FreelancerProfile
   final _locationController = TextEditingController();
   bool _isStudent = false;
   bool _isLoading = false;
+  PlatformFile? _resume;
+
+  Future<void> _pickResume() async {
+    final selection = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['pdf', 'doc', 'docx'],
+    );
+    if (selection.isEmpty) return;
+    final file = selection.first;
+    final size = await file.length();
+    if (size == 0 || size > 5 * 1024 * 1024) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Choose a PDF, DOC, or DOCX file smaller than 5 MB.'),
+          ),
+        );
+      }
+      return;
+    }
+    setState(() => _resume = file);
+  }
 
   @override
   void dispose() {
@@ -48,6 +73,9 @@ class _FreelancerProfileSetupScreenState extends ConsumerState<FreelancerProfile
         skills: _skillsController.text.trim(),
         isStudent: _isStudent,
       );
+      if (_resume != null) {
+        await repository.uploadResume(_resume!);
+      }
       if (!mounted) return;
       if (_isStudent) {
         await context.push(RouteNames.verification);
@@ -56,7 +84,9 @@ class _FreelancerProfileSetupScreenState extends ConsumerState<FreelancerProfile
       context.go(RouteNames.home);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
       setState(() => _isLoading = false);
     }
   }
@@ -79,7 +109,9 @@ class _FreelancerProfileSetupScreenState extends ConsumerState<FreelancerProfile
               const SizedBox(height: 16),
               Text(
                 'Add your professional details so clients can hire you with confidence.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
               ),
               const SizedBox(height: 32),
               WsTextField(
@@ -120,6 +152,24 @@ class _FreelancerProfileSetupScreenState extends ConsumerState<FreelancerProfile
                 validator: Validators.required,
               ),
               const SizedBox(height: 20),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  _resume == null
+                      ? Icons.attach_file_outlined
+                      : Icons.check_circle_outline,
+                  color: _resume == null ? null : Colors.green,
+                ),
+                title: const Text('Attach resume (optional)'),
+                subtitle: Text(
+                  _resume?.name ?? 'PDF, DOC, or DOCX · maximum 5 MB',
+                ),
+                trailing: TextButton(
+                  onPressed: _pickResume,
+                  child: Text(_resume == null ? 'Upload' : 'Replace'),
+                ),
+              ),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(

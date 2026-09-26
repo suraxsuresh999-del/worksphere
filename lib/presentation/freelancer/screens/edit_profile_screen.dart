@@ -175,7 +175,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 24),
                 child: DropdownButtonFormField<String>(
-                  value: _preferredWorkType,
+                  initialValue: _preferredWorkType,
                   decoration: const InputDecoration(labelText: 'Preferred work type'),
                   items: const ['remote', 'onsite', 'hybrid'].map((item) => DropdownMenuItem(value: item, child: Text(item[0].toUpperCase() + item.substring(1)))).toList(),
                   onChanged: (value) => setState(() => _preferredWorkType = value ?? 'remote'),

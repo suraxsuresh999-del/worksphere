@@ -4,6 +4,7 @@ import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../core/enums/enums.dart';
 import '../datasources/auth_remote_datasource.dart';
+import 'package:file_picker/file_picker.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remoteDataSource;
@@ -134,6 +135,12 @@ class AuthRepositoryImpl implements AuthRepository {
       skills: skills,
       isStudent: isStudent,
     );
+  }
+
+  @override
+  Future<void> uploadResume(PlatformFile file) async {
+    if (!await _networkInfo.isConnected) throw const NetworkException();
+    await _remoteDataSource.uploadResume(file);
   }
 
   @override

@@ -61,10 +61,9 @@ class _PaymentMethodsScreenState extends ConsumerState<PaymentMethodsScreen> {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['png', 'jpg', 'jpeg'],
-      withData: true,
     );
-    if (result.files.isEmpty) return;
-    setState(() => _qrFile = result.files.single);
+    if (result.isEmpty) return;
+    setState(() => _qrFile = result.single);
   }
 
   String? _validateUpi(String? value) {
@@ -87,10 +86,7 @@ class _PaymentMethodsScreenState extends ConsumerState<PaymentMethodsScreen> {
 
       String? qrPath;
       if (_qrFile != null) {
-        final bytes = _qrFile!.bytes;
-        if (bytes == null) {
-          throw Exception('QR code bytes could not be read.');
-        }
+        final bytes = await _qrFile!.readAsBytes();
         final contentType = _qrFile!.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
         qrPath = 'payment-methods/${user.id}/qr-${DateTime.now().millisecondsSinceEpoch}.${contentType == 'image/png' ? 'png' : 'jpg'}';
         await client.storage.from('freelancer-payment-assets').uploadBinary(
@@ -159,6 +155,21 @@ class _PaymentMethodsScreenState extends ConsumerState<PaymentMethodsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(currentUserProvider).valueOrNull;
+    if (user?.type.name == 'client') {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Payment Methods')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Client payments are managed when paying for a project. Freelancer UPI payout details are not required for client accounts.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('Payment Methods')),
       body: FutureBuilder<Map<String, dynamic>?>(

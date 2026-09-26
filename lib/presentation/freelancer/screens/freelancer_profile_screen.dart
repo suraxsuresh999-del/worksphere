@@ -88,52 +88,43 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen> {
           final paymentMethod = profile['payment_method'] as Map<String, dynamic>? ?? const {};
           final verified = (profile['verification_status'] as String?) == 'approved';
           final hasPaymentMethod = profile['has_payment_method'] == true;
+          final completion = (profile['profile_completion'] as num?)?.clamp(0, 100).toInt() ?? 0;
+          final location = _compact([
+            profile['city_profile'],
+            profile['district'],
+            profile['state'],
+            profile['country'],
+          ]);
 
           return RefreshIndicator(
             onRefresh: () async => _refresh(),
             child: ListView(
               padding: const EdgeInsets.all(24),
               children: [
-                Center(
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-                    child: avatarUrl == null ? Text(_initials(profile['full_name'] as String? ?? '')) : null,
-                  ),
+                _profileHeader(
+                  context,
+                  avatarUrl: avatarUrl,
+                  name: profile['full_name'] as String? ?? 'Freelancer',
+                  title: profile['title'] as String?,
+                  bio: profile['bio'] as String?,
+                  location: location,
+                  verified: verified,
+                  completion: completion,
+                  hasPaymentMethod: hasPaymentMethod,
                 ),
-                const SizedBox(height: 16),
-                Center(
-                  child: Text(profile['full_name'] as String? ?? 'Freelancer', style: Theme.of(context).textTheme.headlineSmall),
-                ),
-                const SizedBox(height: 4),
-                Center(
-                  child: Text(profile['title'] as String? ?? '', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.primary)),
-                ),
-                const SizedBox(height: 12),
-                Center(
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      Chip(
-                        avatar: Icon(verified ? Icons.verified : Icons.verified_outlined, color: verified ? Colors.green : null),
-                        label: Text(verified ? 'Verified' : 'Not verified'),
-                      ),
-                      if (hasPaymentMethod) const Chip(label: Text('UPI Payment Available')),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
                 _infoCard(
-                  'About',
+                  'Account details',
                   [
-                    _infoRow('Bio', profile['bio'] as String?),
-                    _infoRow('Location', _compact([profile['city_profile'], profile['district'], profile['state'], profile['country']])),
-                    _infoRow('Skills', _listText(profile['languages'])),
+                    _infoRow('Location', location),
                     _infoRow('Availability', profile['availability'] as String?),
                     _infoRow('Preferred work type', profile['preferred_work_type'] as String?),
-                    _infoRow('Experience', profile['experience_level'] as String?),
+                    _infoRow('Experience level', profile['experience_level'] as String?),
+                  ],
+                ),
+                _infoCard(
+                  'Professional expertise',
+                  [
+                    _infoRow('Skills', _listText(profile['languages'])),
                     _infoRow('Certifications', profile['certifications'] as String?),
                     _infoRow('Portfolio link', profile['portfolio_url'] as String?),
                   ],
@@ -153,6 +144,83 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _profileHeader(
+    BuildContext context, {
+    required String? avatarUrl,
+    required String name,
+    required String? title,
+    required String? bio,
+    required String location,
+    required bool verified,
+    required int completion,
+    required bool hasPaymentMethod,
+  }) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 42,
+                  backgroundImage: avatarUrl == null ? null : NetworkImage(avatarUrl),
+                  child: avatarUrl == null ? Text(_initials(name), style: theme.textTheme.titleLarge) : null,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name, style: theme.textTheme.headlineSmall),
+                      if (title != null && title.trim().isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(title, style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary)),
+                      ],
+                      if (location != 'Not added') ...[
+                        const SizedBox(height: 6),
+                        Row(children: [const Icon(Icons.location_on_outlined, size: 16), const SizedBox(width: 4), Expanded(child: Text(location))]),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (bio != null && bio.trim().isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(bio, style: theme.textTheme.bodyMedium),
+            ],
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                Chip(
+                  avatar: Icon(verified ? Icons.verified : Icons.verified_outlined, color: verified ? Colors.green : null, size: 18),
+                  label: Text(verified ? 'Verified' : 'Not verified'),
+                ),
+                if (hasPaymentMethod) const Chip(label: Text('UPI payment available')),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: Text('Profile completion', style: theme.textTheme.labelLarge)),
+                Text('$completion%', style: theme.textTheme.labelLarge),
+              ],
+            ),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(value: completion / 100),
+          ],
+        ),
       ),
     );
   }

@@ -12,6 +12,7 @@ class WsDrawer extends ConsumerWidget {
     // BUG-05 FIX: currentUserProvider is now a Provider<AsyncValue<UserEntity?>>
     // derived from the live auth stream — always up-to-date after sign-out.
     final userAsync = ref.watch(currentUserProvider);
+    final avatarUrl = ref.watch(profileAvatarUrlProvider).valueOrNull;
 
     return Drawer(
       child: Column(
@@ -28,10 +29,10 @@ class WsDrawer extends ConsumerWidget {
                 accountName: Text(user.fullName),
                 accountEmail: Text(user.email),
                 currentAccountPicture: CircleAvatar(
-                  backgroundImage: user.avatarUrl != null
-                      ? NetworkImage(user.avatarUrl!)
+                  backgroundImage: avatarUrl != null
+                      ? NetworkImage(avatarUrl)
                       : null,
-                  child: user.avatarUrl == null
+                  child: avatarUrl == null
                       ? Text(user.initials,
                           style: const TextStyle(fontSize: 24))
                       : null,
@@ -49,6 +50,14 @@ class WsDrawer extends ConsumerWidget {
             onTap: () {
               context.pop();
               context.push(RouteNames.profile);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.send_outlined),
+            title: const Text('My Applications'),
+            onTap: () {
+              context.pop();
+              context.push(RouteNames.applications);
             },
           ),
           ListTile(

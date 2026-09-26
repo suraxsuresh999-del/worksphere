@@ -4,7 +4,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
-const allowedTypes = new Set(['image/jpeg', 'image/png', 'application/pdf'])
+const allowedTypes = new Set(['image/jpeg', 'image/png', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -20,13 +20,19 @@ Deno.serve(async (request) => {
     const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
     for (const document of documents) {
       if (!document?.base64 || !allowedTypes.has(document.mimeType) || document.base64.length > 7_000_000) {
-        throw new Error('Each document must be a JPEG, PNG, or PDF no larger than 5 MB.')
+        throw new Error('Each file must be an allowed document type no larger than 5 MB.')
       }
-      const extension = document.mimeType === 'application/pdf' ? 'pdf' : document.mimeType === 'image/png' ? 'png' : 'jpg'
+      const extension = document.mimeType === 'application/pdf' ? 'pdf' : document.mimeType === 'application/msword' ? 'doc' : document.mimeType.includes('wordprocessingml') ? 'docx' : document.mimeType === 'image/png' ? 'png' : 'jpg'
+      const isResume = document.type === 'resume'
       const path = `${data.user.id}/${document.type}.${extension}`
       const bytes = Uint8Array.from(atob(document.base64), (character) => character.charCodeAt(0))
-      const { error: uploadError } = await admin.storage.from('verification-documents').upload(path, bytes, { contentType: document.mimeType, upsert: true })
+      const { error: uploadError } = await admin.storage.from(isResume ? 'resumes' : 'verification-documents').upload(path, bytes, { contentType: document.mimeType, upsert: true })
       if (uploadError) throw uploadError
+      if (isResume) {
+        const { error: resumeError } = await admin.from('freelancer_profiles').update({ resume_url: path }).eq('user_id', data.user.id)
+        if (resumeError) throw resumeError
+        continue
+      }
       const { error: recordError } = await admin.from('verification_documents').upsert({ user_id: data.user.id, document_type: document.type, storage_path: path, file_name: document.name, mime_type: document.mimeType })
       if (recordError) throw recordError
       if (document.type === 'profile_photo') {

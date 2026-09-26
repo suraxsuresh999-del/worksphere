@@ -8,6 +8,7 @@ class RouteNames {
   static const String login = '/login';
   static const String register = '/register';
   static const String forgotPassword = '/forgot-password';
+  static const String passwordSecurity = '/password-security';
   static const String emailVerification = '/email-verification';
   static const String userTypeSelection = '/user-type-selection';
   static const String clientProfileSetup = '/client-profile-setup';
@@ -30,10 +31,12 @@ class RouteNames {
   static const String verification = '/verification';
   static const String earnings = '/earnings';
   static const String applications = '/applications';
+  static const String applyForJob = '/job/:id/apply';
 
   // ─── Client ───────────────────────────────────────────────────
   static const String postJob = '/job/post';
   static const String myPostedJobs = '/my-jobs';
+  static const String freelancerDiscovery = '/freelancers';
   static const String jobDetail = '/job/:id';
   static const String hireFreelancer = '/hire/:id';
 
@@ -53,6 +56,7 @@ class RouteNames {
 
   // ─── Settings ─────────────────────────────────────────────────
   static const String settings = '/settings';
+  static const String notifications = '/notifications';
 
   // ─── Admin ────────────────────────────────────────────────────
   static const String adminDashboard = '/admin';

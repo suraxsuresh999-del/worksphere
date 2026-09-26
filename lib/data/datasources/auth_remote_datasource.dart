@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'package:file_picker/file_picker.dart';
 import '../models/user_model.dart';
 import '../../core/errors/exceptions.dart';
 import '../../core/enums/enums.dart';
@@ -31,6 +32,7 @@ abstract class AuthRemoteDataSource {
     String? skills,
     required bool isStudent,
   });
+  Future<void> uploadResume(PlatformFile file);
   Future<void> signOut();
   Future<void> sendPasswordResetEmail({required String email});
   Future<void> updatePassword({required String newPassword});
@@ -341,6 +343,38 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } on supabase.AuthException catch (e) {
       throw ServerException(message: e.message);
     } catch (e) {
+      throw ServerException(message: e.toString());
+    }
+  }
+
+  @override
+  Future<void> uploadResume(PlatformFile file) async {
+    final user = _supabaseClient.auth.currentUser;
+    if (user == null) throw AuthException.userNotFound();
+    final extension = file.name.split('.').last.toLowerCase();
+    const mimeTypes = {
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    };
+    final mimeType = mimeTypes[extension];
+    final size = await file.length();
+    if (mimeType == null || size <= 0 || size > 5 * 1024 * 1024) {
+      throw const AuthException(message: 'Choose a PDF, DOC, or DOCX file smaller than 5 MB.');
+    }
+    final bytes = await file.readAsBytes();
+    final path = '${user.id}/resume.$extension';
+    try {
+      await _supabaseClient.storage.from(SupabaseConstants.resumesBucket).uploadBinary(
+        path,
+        bytes,
+        fileOptions: supabase.FileOptions(contentType: mimeType, upsert: true),
+      );
+      await _supabaseClient.rpc('save_my_resume', params: {
+        'storage_path_input': path,
+      });
+    } catch (e) {
+      if (e is AuthException) rethrow;
       throw ServerException(message: e.toString());
     }
   }

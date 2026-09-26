@@ -62,22 +62,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       type: FileType.custom,
       allowedExtensions: const ['jpg', 'jpeg', 'png', 'pdf'],
       withData: true,
-    );
-
-    if (result == null) return; // user cancelled
+    ); // user cancelled
 
     List files;
-    if (result is List) {
-      files = result;
-    } else {
-      final dynamic r = result;
-      final dynamic maybeFiles = r.files;
-      if (maybeFiles is List) {
-        files = maybeFiles;
-      } else {
-        return;
-      }
-    }
+    files = result;
 
     if (files.isEmpty) return;
 

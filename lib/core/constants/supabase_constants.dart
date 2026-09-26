@@ -46,6 +46,7 @@ class SupabaseConstants {
   static const String coversBucket = 'covers';
   static const String portfolioBucket = 'portfolios';
   static const String documentsBucket = 'documents';
+  static const String verificationDocumentsBucket = 'verification-documents';
   static const String chatMediaBucket = 'chat-media';
   static const String resumesBucket = 'resumes';
   static const String gigImagesBucket = 'gig-images';

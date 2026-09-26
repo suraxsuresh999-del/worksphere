@@ -23,13 +23,6 @@ class SettingsScreen extends ConsumerWidget {
           _sectionTitle(context, 'Account'),
           _tile(
             context,
-            icon: Icons.person_outline,
-            title: 'Profile Settings',
-            subtitle: 'Update your profile, portfolio and verification details.',
-            onTap: () => context.push(RouteNames.editProfile),
-          ),
-          _tile(
-            context,
             icon: Icons.privacy_tip_outlined,
             title: 'Privacy & Security',
             subtitle: 'Control account privacy, verification and login security.',
@@ -75,7 +68,7 @@ class SettingsScreen extends ConsumerWidget {
             icon: Icons.password_outlined,
             title: 'Password & Security',
             subtitle: 'Change your password and recovery options.',
-            onTap: () => context.push(RouteNames.forgotPassword),
+            onTap: () => context.push(RouteNames.passwordSecurity),
           ),
           const SizedBox(height: 12),
           _sectionTitle(context, 'Support'),

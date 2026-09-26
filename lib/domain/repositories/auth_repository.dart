@@ -1,5 +1,6 @@
 import '../entities/user_entity.dart';
 import '../../core/enums/enums.dart';
+import 'package:file_picker/file_picker.dart';
 
 /// Authentication Repository Interface
 abstract class AuthRepository {
@@ -42,6 +43,7 @@ abstract class AuthRepository {
     String? skills,
     required bool isStudent,
   });
+  Future<void> uploadResume(PlatformFile file);
 
   /// Sign out the current user
   Future<void> signOut();

@@ -61,7 +61,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
           child: ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: conversations.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final conversation = conversations[index];
               final name = conversation['other_user_name'] as String? ?? 'WorkSphere member';
