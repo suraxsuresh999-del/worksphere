@@ -24,6 +24,7 @@ import '../../presentation/freelancer/screens/portfolio_screen.dart';
 import '../../presentation/freelancer/screens/verification_screen.dart';
 import '../../presentation/client/screens/post_job_screen.dart';
 import '../../presentation/client/screens/my_jobs_screen.dart';
+import '../../presentation/client/screens/client_applications_screen.dart';
 import '../../presentation/client/screens/freelancer_discovery_screen.dart';
 import '../../presentation/jobs/screens/job_detail_screen.dart';
 import '../../presentation/jobs/screens/apply_job_screen.dart';
@@ -31,8 +32,12 @@ import '../../presentation/jobs/screens/applications_screen.dart';
 import '../../presentation/chat/screens/chat_room_screen.dart';
 import '../../presentation/payments/screens/wallet_screen.dart';
 import '../../presentation/payments/screens/payment_methods_screen.dart';
+import '../../presentation/payments/screens/invoices_screen.dart';
+import '../../presentation/projects/screens/projects_screen.dart';
+import '../../presentation/projects/screens/work_calendar_screen.dart';
 import '../../presentation/search/screens/search_screen.dart';
 import '../../presentation/notifications/screens/notifications_screen.dart';
+import '../../presentation/support/screens/support_center_screen.dart';
 import '../../presentation/common/widgets/ws_animated_page.dart';
 import '../../presentation/admin/screens/admin_dashboard_screen.dart';
 import '../../presentation/admin/screens/admin_verification_screen.dart';
@@ -59,7 +64,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isPublicRoute = publicRoutes.contains(location);
       final signedIn = Supabase.instance.client.auth.currentSession != null;
       if (!signedIn && !isPublicRoute) return RouteNames.login;
-      if (signedIn && (location == RouteNames.login || location == RouteNames.register)) {
+      if (signedIn &&
+          (location == RouteNames.login || location == RouteNames.register)) {
         return RouteNames.splash;
       }
       return null;
@@ -74,7 +80,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RouteNames.onboarding,
         name: 'onboarding',
-        builder: (context, state) => const WsAnimatedPage(child: OnboardingScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: OnboardingScreen()),
       ),
       GoRoute(
         path: RouteNames.login,
@@ -84,17 +91,20 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RouteNames.register,
         name: 'register',
-        builder: (context, state) => const WsAnimatedPage(child: RegisterScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: RegisterScreen()),
       ),
       GoRoute(
         path: RouteNames.forgotPassword,
         name: 'forgot-password',
-        builder: (context, state) => const WsAnimatedPage(child: ForgotPasswordScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: ForgotPasswordScreen()),
       ),
       GoRoute(
         path: RouteNames.passwordSecurity,
         name: 'password-security',
-        builder: (context, state) => const WsAnimatedPage(child: PasswordSecurityScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: PasswordSecurityScreen()),
       ),
       GoRoute(
         path: RouteNames.emailVerification,
@@ -103,69 +113,89 @@ final routerProvider = Provider<GoRouter>((ref) {
           final extra = state.extra;
           if (extra is EmailVerificationArguments) {
             return WsAnimatedPage(
-              child: EmailVerificationScreen(
-                email: extra.email,
-              ),
+              child: EmailVerificationScreen(email: extra.email),
             );
           }
-          final email = (extra is Map<String, dynamic>) ? (extra['email'] as String? ?? '') : (extra as String? ?? '');
+          final email = (extra is Map<String, dynamic>)
+              ? (extra['email'] as String? ?? '')
+              : (extra as String? ?? '');
           return WsAnimatedPage(child: EmailVerificationScreen(email: email));
         },
       ),
       GoRoute(
         path: RouteNames.userTypeSelection,
         name: 'user-type-selection',
-        builder: (context, state) => const WsAnimatedPage(child: UserTypeSelectionScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: UserTypeSelectionScreen()),
       ),
       GoRoute(
         path: RouteNames.clientProfileSetup,
         name: 'client-profile-setup',
-        builder: (context, state) => const WsAnimatedPage(child: ClientProfileSetupScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: ClientProfileSetupScreen()),
       ),
       GoRoute(
         path: RouteNames.freelancerProfileSetup,
         name: 'freelancer-profile-setup',
-        builder: (context, state) => const WsAnimatedPage(child: FreelancerProfileSetupScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: FreelancerProfileSetupScreen()),
       ),
       GoRoute(
         path: RouteNames.settings,
         name: 'settings',
-        builder: (context, state) => const WsAnimatedPage(child: SettingsScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: SettingsScreen()),
       ),
       GoRoute(
         path: RouteNames.editProfile,
         name: 'edit-profile',
-        builder: (context, state) => const WsAnimatedPage(child: EditProfileScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: EditProfileScreen()),
       ),
       GoRoute(
         path: RouteNames.portfolio,
         name: 'portfolio',
-        builder: (context, state) => const WsAnimatedPage(child: PortfolioScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: PortfolioScreen()),
       ),
       GoRoute(
         path: RouteNames.verification,
         name: 'verification',
-        builder: (context, state) => const WsAnimatedPage(child: VerificationScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: VerificationScreen()),
       ),
       GoRoute(
         path: RouteNames.postJob,
         name: 'post-job',
-        builder: (context, state) => const WsAnimatedPage(child: PostJobScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: PostJobScreen()),
       ),
       GoRoute(
         path: RouteNames.notifications,
         name: 'notifications',
-        builder: (context, state) => const WsAnimatedPage(child: NotificationsScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: NotificationsScreen()),
       ),
       GoRoute(
         path: RouteNames.myPostedJobs,
         name: 'my-posted-jobs',
-        builder: (context, state) => const WsAnimatedPage(child: MyJobsScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: MyJobsScreen()),
+      ),
+      GoRoute(
+        path: '/job/:id/applications',
+        name: 'client-job-applications',
+        builder: (context, state) => WsAnimatedPage(
+          child: ClientApplicationsScreen(
+            jobId: state.pathParameters['id'] ?? '',
+          ),
+        ),
       ),
       GoRoute(
         path: RouteNames.freelancerDiscovery,
         name: 'freelancer-discovery',
-        builder: (context, state) => const WsAnimatedPage(child: FreelancerDiscoveryScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: FreelancerDiscoveryScreen()),
       ),
       GoRoute(
         path: RouteNames.jobDetail,
@@ -185,13 +215,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RouteNames.applications,
         name: 'applications',
-        builder: (context, state) => const WsAnimatedPage(child: ApplicationsScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: ApplicationsScreen()),
       ),
       GoRoute(
         path: RouteNames.freelancerProfile,
         name: 'freelancer-profile',
         builder: (context, state) => WsAnimatedPage(
-          child: FreelancerProfileScreen(freelancerId: state.pathParameters['id'] ?? ''),
+          child: FreelancerProfileScreen(
+            freelancerId: state.pathParameters['id'] ?? '',
+          ),
         ),
       ),
       GoRoute(
@@ -205,12 +238,56 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RouteNames.wallet,
         name: 'wallet',
-        builder: (context, state) => const WsAnimatedPage(child: WalletScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: WalletScreen()),
       ),
       GoRoute(
         path: RouteNames.paymentMethods,
         name: 'payment-methods',
-        builder: (context, state) => const WsAnimatedPage(child: PaymentMethodsScreen()),
+        builder: (context, state) =>
+            const WsAnimatedPage(child: PaymentMethodsScreen()),
+      ),
+      GoRoute(
+        path: RouteNames.supportCenter,
+        name: 'support-center',
+        builder: (context, state) =>
+            const WsAnimatedPage(child: SupportCenterScreen()),
+      ),
+      GoRoute(
+        path: RouteNames.invoices,
+        name: 'invoices',
+        builder: (context, state) =>
+            const WsAnimatedPage(child: InvoicesScreen()),
+      ),
+      GoRoute(
+        path: RouteNames.invoiceDetail,
+        name: 'invoice-detail',
+        builder: (context, state) => WsAnimatedPage(
+          child: InvoiceDetailScreen(
+            invoiceId: state.pathParameters['id'] ?? '',
+          ),
+        ),
+      ),
+      GoRoute(
+        path: RouteNames.calendar,
+        name: 'work-calendar',
+        builder: (context, state) =>
+            const WsAnimatedPage(child: WorkCalendarScreen()),
+      ),
+      GoRoute(
+        path: RouteNames.projects,
+        name: 'projects',
+        builder: (context, state) =>
+            const WsAnimatedPage(child: ProjectsScreen()),
+      ),
+      GoRoute(
+        path: RouteNames.projectDetail,
+        name: 'project-detail',
+        builder: (context, state) => WsAnimatedPage(
+          child: ProjectDetailScreen(
+            projectId: state.pathParameters['id'] ?? '',
+          ),
+        ),
       ),
 
       // ─── Main Shell (Bottom Navigation) ─────────────────────────
@@ -225,7 +302,9 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'users',
             name: 'admin-users',
             builder: (context, state) => const AdminAccessGate(
-              child: WsAnimatedPage(child: AdminSectionScreen(section: 'users')),
+              child: WsAnimatedPage(
+                child: AdminSectionScreen(section: 'users'),
+              ),
             ),
           ),
           GoRoute(
@@ -239,49 +318,72 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'projects',
             name: 'admin-projects',
             builder: (context, state) => const AdminAccessGate(
-              child: WsAnimatedPage(child: AdminSectionScreen(section: 'projects')),
+              child: WsAnimatedPage(
+                child: AdminSectionScreen(section: 'projects'),
+              ),
             ),
           ),
           GoRoute(
             path: 'transactions',
             name: 'admin-transactions',
             builder: (context, state) => const AdminAccessGate(
-              child: WsAnimatedPage(child: AdminSectionScreen(section: 'transactions')),
+              child: WsAnimatedPage(
+                child: AdminSectionScreen(section: 'transactions'),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: 'payments',
+            name: 'admin-payments',
+            builder: (context, state) => const AdminAccessGate(
+              child: WsAnimatedPage(
+                child: AdminSectionScreen(section: 'payment-methods'),
+              ),
             ),
           ),
           GoRoute(
             path: 'reports',
             name: 'admin-reports',
             builder: (context, state) => const AdminAccessGate(
-              child: WsAnimatedPage(child: AdminSectionScreen(section: 'reports')),
+              child: WsAnimatedPage(
+                child: AdminSectionScreen(section: 'reports'),
+              ),
             ),
           ),
           GoRoute(
             path: 'support',
             name: 'admin-support',
             builder: (context, state) => const AdminAccessGate(
-              child: WsAnimatedPage(child: AdminSectionScreen(section: 'support')),
+              child: WsAnimatedPage(
+                child: AdminSectionScreen(section: 'support'),
+              ),
             ),
           ),
           GoRoute(
             path: 'support/inbox',
             name: 'admin-support-inbox',
             builder: (context, state) => const AdminAccessGate(
-              child: WsAnimatedPage(child: AdminSupportDetailScreen(section: 'inbox')),
+              child: WsAnimatedPage(
+                child: AdminSupportDetailScreen(section: 'inbox'),
+              ),
             ),
           ),
           GoRoute(
             path: 'support/contacts',
             name: 'admin-contacts',
             builder: (context, state) => const AdminAccessGate(
-              child: WsAnimatedPage(child: AdminSupportDetailScreen(section: 'contacts')),
+              child: WsAnimatedPage(
+                child: AdminSupportDetailScreen(section: 'contacts'),
+              ),
             ),
           ),
           GoRoute(
             path: 'support/help-center',
             name: 'admin-help-center',
             builder: (context, state) => const AdminAccessGate(
-              child: WsAnimatedPage(child: AdminSupportDetailScreen(section: 'help-center')),
+              child: WsAnimatedPage(
+                child: AdminSupportDetailScreen(section: 'help-center'),
+              ),
             ),
           ),
           GoRoute(

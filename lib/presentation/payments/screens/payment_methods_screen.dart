@@ -11,7 +11,8 @@ class PaymentMethodsScreen extends ConsumerStatefulWidget {
   const PaymentMethodsScreen({super.key});
 
   @override
-  ConsumerState<PaymentMethodsScreen> createState() => _PaymentMethodsScreenState();
+  ConsumerState<PaymentMethodsScreen> createState() =>
+      _PaymentMethodsScreenState();
 }
 
 class _PaymentMethodsScreenState extends ConsumerState<PaymentMethodsScreen> {
@@ -39,7 +40,9 @@ class _PaymentMethodsScreenState extends ConsumerState<PaymentMethodsScreen> {
   }
 
   Future<Map<String, dynamic>?> _loadPaymentMethod() async {
-    final user = ref.read(currentUserProvider).valueOrNull;
+    // The authenticated Supabase session is available before the profile
+    // stream necessarily finishes its initial load.
+    final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return null;
     final row = await Supabase.instance.client
         .from('freelancer_payment_methods')
@@ -63,13 +66,25 @@ class _PaymentMethodsScreenState extends ConsumerState<PaymentMethodsScreen> {
       allowedExtensions: const ['png', 'jpg', 'jpeg'],
     );
     if (result.isEmpty) return;
-    setState(() => _qrFile = result.single);
+    final file = result.single;
+    if (await file.length() > 5 * 1024 * 1024) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('QR image must be 5 MB or smaller.')),
+        );
+      }
+      return;
+    }
+    setState(() => _qrFile = file);
   }
 
   String? _validateUpi(String? value) {
     final upi = value?.trim() ?? '';
     if (upi.isEmpty) return 'UPI ID is required';
-    final regex = RegExp(r'^[A-Za-z0-9._-]+@(upi|okaxis|oksbi|ybl|paytm|axl|ibl|idbi|kotak|unionbank)$', caseSensitive: false);
+    final regex = RegExp(
+      r'^[A-Za-z0-9._-]+@(upi|okaxis|oksbi|ybl|paytm|axl|ibl|idbi|kotak|unionbank)$',
+      caseSensitive: false,
+    );
     if (!regex.hasMatch(upi)) return 'Enter a valid UPI ID';
     return null;
   }
@@ -79,21 +94,31 @@ class _PaymentMethodsScreenState extends ConsumerState<PaymentMethodsScreen> {
     if (_isSaving) return;
 
     setState(() => _isSaving = true);
+    String? newlyUploadedQrPath;
     try {
       final client = Supabase.instance.client;
       final user = client.auth.currentUser;
       if (user == null) throw Exception('You must be signed in.');
 
       String? qrPath;
+      final previousQrPath = (await _currentMethod)?['qr_code_path'] as String?;
       if (_qrFile != null) {
         final bytes = await _qrFile!.readAsBytes();
-        final contentType = _qrFile!.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
-        qrPath = 'payment-methods/${user.id}/qr-${DateTime.now().millisecondsSinceEpoch}.${contentType == 'image/png' ? 'png' : 'jpg'}';
-        await client.storage.from('freelancer-payment-assets').uploadBinary(
-          qrPath,
-          Uint8List.fromList(bytes),
-          fileOptions: FileOptions(contentType: contentType, upsert: true),
-        );
+        final contentType = _qrFile!.name.toLowerCase().endsWith('.png')
+            ? 'image/png'
+            : 'image/jpeg';
+        // Storage policies and client reads scope files by their first folder,
+        // which must be the freelancer's auth user ID.
+        qrPath =
+            '${user.id}/payment-methods/qr-${DateTime.now().millisecondsSinceEpoch}.${contentType == 'image/png' ? 'png' : 'jpg'}';
+        newlyUploadedQrPath = qrPath;
+        await client.storage
+            .from('freelancer-payment-assets')
+            .uploadBinary(
+              qrPath,
+              Uint8List.fromList(bytes),
+              fileOptions: FileOptions(contentType: contentType, upsert: true),
+            );
       } else {
         final current = await _currentMethod;
         qrPath = current?['qr_code_path'] as String?;
@@ -109,15 +134,24 @@ class _PaymentMethodsScreenState extends ConsumerState<PaymentMethodsScreen> {
         },
       );
 
+      if (previousQrPath != null && previousQrPath != qrPath) {
+        await _deleteQr(previousQrPath);
+      }
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Payment details saved.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Payment details saved.')));
       _refresh();
     } catch (_) {
+      if (newlyUploadedQrPath != null) {
+        await _deleteQr(newlyUploadedQrPath);
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unable to save payment details. Please try again.')),
+          const SnackBar(
+            content: Text('Unable to save payment details. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -132,15 +166,21 @@ class _PaymentMethodsScreenState extends ConsumerState<PaymentMethodsScreen> {
       final client = Supabase.instance.client;
       final user = client.auth.currentUser;
       if (user == null) return;
-      await client.from('freelancer_payment_methods').delete().eq('user_id', user.id);
+      final current = await _currentMethod;
+      await client
+          .from('freelancer_payment_methods')
+          .delete()
+          .eq('user_id', user.id);
+      final qrPath = current?['qr_code_path'] as String?;
+      if (qrPath != null) await _deleteQr(qrPath);
       if (!mounted) return;
       _upiController.clear();
       _accountController.clear();
       _noteController.clear();
       setState(() => _qrFile = null);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Payment details removed.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Payment details removed.')));
       _refresh();
     } catch (_) {
       if (mounted) {
@@ -153,17 +193,34 @@ class _PaymentMethodsScreenState extends ConsumerState<PaymentMethodsScreen> {
     }
   }
 
+  Future<void> _deleteQr(String path) async {
+    try {
+      await Supabase.instance.client.storage
+          .from('freelancer-payment-assets')
+          .remove([path]);
+    } catch (_) {
+      // Don't block payment method changes if storage cleanup fails.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(currentUserProvider).valueOrNull;
-    if (user?.type.name == 'client') {
+    final userState = ref.watch(currentUserProvider);
+    if (userState.isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Payment Methods')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    final user = userState.valueOrNull;
+    if (user?.type.name != 'freelancer') {
       return Scaffold(
         appBar: AppBar(title: const Text('Payment Methods')),
         body: const Center(
           child: Padding(
             padding: EdgeInsets.all(24),
             child: Text(
-              'Client payments are managed when paying for a project. Freelancer UPI payout details are not required for client accounts.',
+              'Payout details are available for freelancer accounts only. Client payments are managed when paying for a project.',
               textAlign: TextAlign.center,
             ),
           ),
@@ -178,19 +235,52 @@ class _PaymentMethodsScreenState extends ConsumerState<PaymentMethodsScreen> {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
           }
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Unable to load payment details.'),
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: _refresh,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
           final current = snapshot.data;
           return Form(
             key: _formKey,
             child: ListView(
               padding: const EdgeInsets.all(24),
               children: [
-                Text('Add your UPI payment details', style: Theme.of(context).textTheme.headlineSmall),
+                Text(
+                  'Add your UPI payment details',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
                 const SizedBox(height: 8),
                 Text(
                   'These details stay private and are only shown to a client when they are paying for a project.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 24),
+                if (user?.verificationStatus.isVerified != true)
+                  const Card(
+                    child: ListTile(
+                      leading: Icon(Icons.info_outline),
+                      title: Text('Verification required'),
+                      subtitle: Text(
+                        'Approve identity verification before saving payout details.',
+                      ),
+                    ),
+                  ),
+                if (user?.verificationStatus.isVerified != true)
+                  const SizedBox(height: 16),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -198,26 +288,39 @@ class _PaymentMethodsScreenState extends ConsumerState<PaymentMethodsScreen> {
                       children: [
                         TextFormField(
                           controller: _upiController,
-                          decoration: const InputDecoration(labelText: 'UPI ID'),
+                          decoration: const InputDecoration(
+                            labelText: 'UPI ID',
+                          ),
                           validator: _validateUpi,
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _accountController,
-                          decoration: const InputDecoration(labelText: 'Account holder name'),
-                          validator: (value) => (value == null || value.trim().isEmpty) ? 'Account holder name is required' : null,
+                          decoration: const InputDecoration(
+                            labelText: 'Account holder name',
+                          ),
+                          validator: (value) =>
+                              (value == null || value.trim().isEmpty)
+                              ? 'Account holder name is required'
+                              : null,
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _noteController,
-                          decoration: const InputDecoration(labelText: 'Optional payment note'),
+                          decoration: const InputDecoration(
+                            labelText: 'Optional payment note',
+                          ),
                           maxLines: 2,
                         ),
                         const SizedBox(height: 16),
                         ListTile(
                           contentPadding: EdgeInsets.zero,
                           title: const Text('UPI QR code'),
-                          subtitle: Text(_qrFile?.name ?? (current?['qr_code_path'] as String? ?? 'No QR code uploaded')),
+                          subtitle: Text(
+                            _qrFile?.name ??
+                                (current?['qr_code_path'] as String? ??
+                                    'No QR code uploaded'),
+                          ),
                           trailing: OutlinedButton(
                             onPressed: _pickQrCode,
                             child: const Text('Upload QR'),
@@ -228,14 +331,25 @@ class _PaymentMethodsScreenState extends ConsumerState<PaymentMethodsScreen> {
                           children: [
                             Expanded(
                               child: FilledButton(
-                                onPressed: _isSaving ? null : _save,
-                                child: Text(_isSaving ? 'Saving...' : 'Save Payment Details'),
+                                onPressed:
+                                    _isSaving ||
+                                        user?.verificationStatus.isVerified !=
+                                            true
+                                    ? null
+                                    : _save,
+                                child: Text(
+                                  _isSaving
+                                      ? 'Saving...'
+                                      : 'Save Payment Details',
+                                ),
                               ),
                             ),
                             const SizedBox(width: 12),
                             OutlinedButton(
                               onPressed: _isRemoving ? null : _remove,
-                              child: Text(_isRemoving ? 'Removing...' : 'Remove'),
+                              child: Text(
+                                _isRemoving ? 'Removing...' : 'Remove',
+                              ),
                             ),
                           ],
                         ),
@@ -248,7 +362,9 @@ class _PaymentMethodsScreenState extends ConsumerState<PaymentMethodsScreen> {
                   child: ListTile(
                     leading: const Icon(Icons.verified_outlined),
                     title: const Text('Payment status'),
-                    subtitle: Text((current?['status'] as String?) ?? 'Not Added'),
+                    subtitle: Text(
+                      (current?['status'] as String?) ?? 'Not Added',
+                    ),
                   ),
                 ),
               ],

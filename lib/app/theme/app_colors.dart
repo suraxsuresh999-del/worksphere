@@ -51,11 +51,11 @@ class AppColors {
   static const Color cardBackgroundLight = Color(0xFFE7F7FF);
 
   // ─── Dark Mode Colors ─────────────────────────────────────────
-  static const Color darkBackground = background;
-  static const Color darkSurface = surface;
-  static const Color darkSurfaceVariant = surfaceVariant;
-  static const Color darkCard = cardBackgroundLight;
-  static const Color darkCardLight = backgroundSecondary;
+  static const Color darkBackground = Color(0xFF0B1220);
+  static const Color darkSurface = Color(0xFF111C2E);
+  static const Color darkSurfaceVariant = Color(0xFF1D2A3D);
+  static const Color darkCard = Color(0xFF15243A);
+  static const Color darkCardLight = Color(0xFF22334A);
 
   // ─── Text Colors ──────────────────────────────────────────────
   static const Color textPrimary = Color(0xFF0A315B);

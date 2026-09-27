@@ -27,7 +27,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (path == null || path.trim().isEmpty) return null;
     if (path.startsWith('http')) return path;
     try {
-      return await Supabase.instance.client.storage.from('verification-documents').createSignedUrl(path, 600);
+      return await Supabase.instance.client.storage
+          .from('verification-documents')
+          .createSignedUrl(path, 600);
     } catch (_) {
       return null;
     }
@@ -40,13 +42,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
 
     final client = Supabase.instance.client;
-    final profileRow = await client.from('profiles').select().eq('id', user.id).maybeSingle();
+    final profileRow = await client
+        .from('profiles')
+        .select()
+        .eq('id', user.id)
+        .maybeSingle();
     if (profileRow == null) {
       throw Exception('Profile not found');
     }
 
     final profile = Map<String, dynamic>.from(profileRow as Map);
-    final type = UserType.fromString(profile['user_type'] as String? ?? UserType.rolePending.value);
+    final type = UserType.fromString(
+      profile['user_type'] as String? ?? UserType.rolePending.value,
+    );
     final avatarUrl = await _resolveAvatar(profile['avatar_url'] as String?);
 
     Map<String, dynamic>? roleProfile;
@@ -55,20 +63,49 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     List<Map<String, dynamic>> experience = [];
 
     if (type == UserType.client) {
-      final row = await client.from('client_profiles').select().eq('user_id', user.id).maybeSingle();
+      final row = await client
+          .from('client_profiles')
+          .select()
+          .eq('user_id', user.id)
+          .maybeSingle();
       roleProfile = row == null ? null : Map<String, dynamic>.from(row as Map);
     } else if (type == UserType.freelancer) {
-      final row = await client.from('freelancer_profiles').select().eq('user_id', user.id).maybeSingle();
+      final row = await client
+          .from('freelancer_profiles')
+          .select()
+          .eq('user_id', user.id)
+          .maybeSingle();
       roleProfile = row == null ? null : Map<String, dynamic>.from(row as Map);
 
-      final portfolioRows = await client.from('portfolio_items').select().eq('freelancer_id', user.id).order('created_at', ascending: false).limit(20);
-      portfolio = (portfolioRows as List).map((row) => Map<String, dynamic>.from(row as Map)).toList();
+      final portfolioRows = await client
+          .from('portfolio_items')
+          .select()
+          .eq('freelancer_id', user.id)
+          .order('created_at', ascending: false)
+          .limit(20);
+      portfolio = (portfolioRows as List)
+          .map((row) => Map<String, dynamic>.from(row as Map))
+          .toList();
 
-      final educationRows = await client.from('education').select().eq('freelancer_id', user.id).order('created_at', ascending: false).limit(10);
-      education = (educationRows as List).map((row) => Map<String, dynamic>.from(row as Map)).toList();
+      final educationRows = await client
+          .from('education')
+          .select()
+          .eq('freelancer_id', user.id)
+          .order('created_at', ascending: false)
+          .limit(10);
+      education = (educationRows as List)
+          .map((row) => Map<String, dynamic>.from(row as Map))
+          .toList();
 
-      final experienceRows = await client.from('experience').select().eq('freelancer_id', user.id).order('created_at', ascending: false).limit(10);
-      experience = (experienceRows as List).map((row) => Map<String, dynamic>.from(row as Map)).toList();
+      final experienceRows = await client
+          .from('experience')
+          .select()
+          .eq('freelancer_id', user.id)
+          .order('created_at', ascending: false)
+          .limit(10);
+      experience = (experienceRows as List)
+          .map((row) => Map<String, dynamic>.from(row as Map))
+          .toList();
     }
 
     return {
@@ -120,7 +157,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       children: [
                         const Text('Unable to load your profile details.'),
                         const SizedBox(height: 12),
-                        OutlinedButton(onPressed: _refresh, child: const Text('Retry')),
+                        OutlinedButton(
+                          onPressed: _refresh,
+                          child: const Text('Retry'),
+                        ),
                       ],
                     ),
                   ),
@@ -132,7 +172,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               final roleProfile = data['roleProfile'] as Map<String, dynamic>?;
               final avatarUrl = data['avatarUrl'] as String?;
               final type = data['type'] as UserType;
-              final verification = VerificationStatus.fromString(profile['verification_status'] as String? ?? '');
+              final verification = VerificationStatus.fromString(
+                profile['verification_status'] as String? ?? '',
+              );
 
               return RefreshIndicator(
                 onRefresh: () async => _refresh(),
@@ -142,13 +184,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Center(
                       child: CircleAvatar(
                         radius: 44,
-                        backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-                        child: avatarUrl == null ? Text(account.initials.isEmpty ? '?' : account.initials, style: Theme.of(context).textTheme.titleLarge) : null,
+                        backgroundImage: avatarUrl != null
+                            ? NetworkImage(avatarUrl)
+                            : null,
+                        child: avatarUrl == null
+                            ? Text(
+                                account.initials.isEmpty
+                                    ? '?'
+                                    : account.initials,
+                                style: Theme.of(context).textTheme.titleLarge,
+                              )
+                            : null,
                       ),
                     ),
                     const SizedBox(height: 16),
                     Center(
-                      child: Text(profile['full_name'] as String? ?? 'WorkSphere member', style: Theme.of(context).textTheme.headlineSmall),
+                      child: Text(
+                        profile['full_name'] as String? ?? 'WorkSphere member',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Center(child: Text(profile['email'] as String? ?? '')),
@@ -156,53 +210,133 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Center(
                       child: Chip(
                         avatar: Icon(
-                          verification.isVerified ? Icons.verified : Icons.verified_outlined,
+                          verification.isVerified
+                              ? Icons.verified
+                              : Icons.verified_outlined,
                           color: verification.isVerified ? Colors.green : null,
                         ),
-                        label: Text(verification.isVerified ? 'Verified' : verification.label),
+                        label: Text(
+                          verification.isVerified
+                              ? 'Verified'
+                              : verification.label,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
-                    _infoCard(
-                      context,
-                      'Account details',
-                      [
-                        _infoTile('Role', type.label),
-                        _infoTile('Date of birth', _formatDate(profile['date_of_birth'] as String?)),
-                        _infoTile('Location', _compact([profile['city'], profile['state'], profile['country']])),
-                      ],
-                    ),
+                    _infoCard(context, 'Account details', [
+                      _infoTile('Role', type.label),
+                      _infoTile(
+                        'Date of birth',
+                        _formatDate(profile['date_of_birth'] as String?),
+                      ),
+                      _infoTile(
+                        'Location',
+                        _compact([
+                          profile['city'],
+                          profile['state'],
+                          profile['country'],
+                        ]),
+                      ),
+                    ]),
                     if (type == UserType.freelancer && roleProfile != null) ...[
-                      _infoCard(
+                      _infoCard(context, 'Freelancer profile', [
+                        _infoTile('Headline', roleProfile['title'] as String?),
+                        _infoTile('Bio', roleProfile['bio'] as String?),
+                        _infoTile(
+                          'Skills',
+                          _listText(roleProfile['languages']),
+                        ),
+                        _infoTile(
+                          'Availability',
+                          roleProfile['availability'] as String?,
+                        ),
+                        _infoTile(
+                          'Preferred work type',
+                          roleProfile['preferred_work_type'] as String?,
+                        ),
+                        _infoTile(
+                          'Experience',
+                          roleProfile['experience_level'] as String?,
+                        ),
+                        _infoTile(
+                          'Certifications',
+                          roleProfile['certifications'] as String?,
+                        ),
+                        _infoTile(
+                          'Portfolio',
+                          roleProfile['portfolio_url'] as String?,
+                        ),
+                        _infoTile(
+                          'Hourly rate',
+                          _formatCurrency(roleProfile['hourly_rate']),
+                        ),
+                      ]),
+                      _listCard(
                         context,
-                        'Freelancer profile',
-                        [
-                          _infoTile('Headline', roleProfile['title'] as String?),
-                          _infoTile('Bio', roleProfile['bio'] as String?),
-                          _infoTile('Skills', _listText(roleProfile['languages'])),
-                          _infoTile('Availability', roleProfile['availability'] as String?),
-                          _infoTile('Preferred work type', roleProfile['preferred_work_type'] as String?),
-                          _infoTile('Experience', roleProfile['experience_level'] as String?),
-                          _infoTile('Certifications', roleProfile['certifications'] as String?),
-                          _infoTile('Portfolio', roleProfile['portfolio_url'] as String?),
-                          _infoTile('Hourly rate', _formatCurrency(roleProfile['hourly_rate'])),
-                        ],
+                        'Portfolio',
+                        (data['portfolio'] as List)
+                            .cast<Map<String, dynamic>>(),
+                        (item) =>
+                            '${item['title'] ?? ''}\n${item['description'] ?? ''}',
                       ),
-                      _listCard(context, 'Portfolio', (data['portfolio'] as List).cast<Map<String, dynamic>>(), (item) => '${item['title'] ?? ''}\n${item['description'] ?? ''}'),
-                      _listCard(context, 'Education', (data['education'] as List).cast<Map<String, dynamic>>(), (item) => '${item['degree'] ?? ''} • ${item['institution'] ?? ''}'),
-                      _listCard(context, 'Experience', (data['experience'] as List).cast<Map<String, dynamic>>(), (item) => '${item['title'] ?? ''} • ${item['company'] ?? ''}'),
-                    ] else if (type == UserType.client && roleProfile != null) ...[
-                      _infoCard(
+                      _listCard(
                         context,
-                        'Client profile',
-                        [
-                          _infoTile('Company', roleProfile['company_name'] as String?),
-                          _infoTile('Industry', roleProfile['industry'] as String?),
-                          _infoTile('Description', roleProfile['description'] as String?),
-                          _infoTile('Website', roleProfile['website'] as String?),
-                          _infoTile('Location', _compact([roleProfile['city'], roleProfile['district']])),
-                        ],
+                        'Education',
+                        (data['education'] as List)
+                            .cast<Map<String, dynamic>>(),
+                        (item) =>
+                            '${item['degree'] ?? ''} • ${item['institution'] ?? ''}',
                       ),
+                      _listCard(
+                        context,
+                        'Experience',
+                        (data['experience'] as List)
+                            .cast<Map<String, dynamic>>(),
+                        (item) =>
+                            '${item['title'] ?? ''} • ${item['company'] ?? ''}',
+                      ),
+                    ] else if (type == UserType.client &&
+                        roleProfile != null) ...[
+                      _infoCard(context, 'Client profile', [
+                        _infoTile(
+                          'Company',
+                          roleProfile['company_name'] as String?,
+                        ),
+                        _infoTile(
+                          'Industry',
+                          roleProfile['industry'] as String?,
+                        ),
+                        _infoTile(
+                          'Company size',
+                          roleProfile['company_size'] as String?,
+                        ),
+                        _infoTile(
+                          'Description',
+                          roleProfile['description'] as String?,
+                        ),
+                        _infoTile('Website', roleProfile['website'] as String?),
+                        _infoTile(
+                          'Location',
+                          _compact([
+                            roleProfile['city'],
+                            roleProfile['district'],
+                          ]),
+                        ),
+                        _infoTile(
+                          'Jobs posted',
+                          roleProfile['jobs_posted']?.toString(),
+                        ),
+                        _infoTile(
+                          'Total spending',
+                          _formatCurrency(roleProfile['total_spent']),
+                        ),
+                        _infoTile(
+                          'Rating',
+                          (roleProfile['reviews_count'] as num? ?? 0) > 0
+                              ? '${roleProfile['rating'] ?? '—'} (${roleProfile['reviews_count']} reviews)'
+                              : null,
+                        ),
+                      ]),
                     ],
                     const SizedBox(height: 16),
                     FilledButton.icon(
@@ -279,21 +413,37 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 150, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600))),
-          Expanded(child: Text((value == null || value.trim().isEmpty) ? 'Not added' : value)),
+          SizedBox(
+            width: 150,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              (value == null || value.trim().isEmpty) ? 'Not added' : value,
+            ),
+          ),
         ],
       ),
     );
   }
 
   String _compact(List<Object?> values) {
-    final parts = values.where((value) => value != null && value.toString().trim().isNotEmpty).map((value) => value.toString().trim()).toList();
+    final parts = values
+        .where((value) => value != null && value.toString().trim().isNotEmpty)
+        .map((value) => value.toString().trim())
+        .toList();
     return parts.isEmpty ? 'Not added' : parts.join(', ');
   }
 
   String _listText(Object? value) {
     if (value is List) {
-      final parts = value.map((item) => item.toString().trim()).where((item) => item.isNotEmpty).toList();
+      final parts = value
+          .map((item) => item.toString().trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
       return parts.isEmpty ? 'Not added' : parts.join(', ');
     }
     return value?.toString() ?? 'Not added';

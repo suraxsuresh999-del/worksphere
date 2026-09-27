@@ -43,6 +43,7 @@ class RouteNames {
   // ─── Projects ─────────────────────────────────────────────────
   static const String projectDetail = '/project/:id';
   static const String milestones = '/project/:id/milestones';
+  static const String projects = '/projects';
 
   // ─── Chat ─────────────────────────────────────────────────────
   static const String chatRoom = '/chat/:id';
@@ -57,6 +58,9 @@ class RouteNames {
   // ─── Settings ─────────────────────────────────────────────────
   static const String settings = '/settings';
   static const String notifications = '/notifications';
+  static const String supportCenter = '/support';
+  static const String calendar = '/calendar';
+  static const String invoices = '/invoices';
 
   // ─── Admin ────────────────────────────────────────────────────
   static const String adminDashboard = '/admin';

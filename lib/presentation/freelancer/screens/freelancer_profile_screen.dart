@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../common/widgets/report_action.dart';
 
 class FreelancerProfileScreen extends StatefulWidget {
   final String freelancerId;
   const FreelancerProfileScreen({super.key, required this.freelancerId});
 
   @override
-  State<FreelancerProfileScreen> createState() => _FreelancerProfileScreenState();
+  State<FreelancerProfileScreen> createState() =>
+      _FreelancerProfileScreenState();
 }
 
 class _FreelancerProfileScreenState extends State<FreelancerProfileScreen> {
@@ -22,7 +26,9 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen> {
     if (path == null || path.trim().isEmpty) return null;
     if (path.startsWith('http')) return path;
     try {
-      return await Supabase.instance.client.storage.from('verification-documents').createSignedUrl(path, 600);
+      return await Supabase.instance.client.storage
+          .from('verification-documents')
+          .createSignedUrl(path, 600);
     } catch (_) {
       return null;
     }
@@ -30,16 +36,42 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen> {
 
   Future<Map<String, dynamic>?> _loadProfile() async {
     final client = Supabase.instance.client;
-    final response = await client.rpc('get_public_freelancer_profile', params: {'freelancer_id_input': widget.freelancerId});
+    final response = await client.rpc(
+      'get_public_freelancer_profile',
+      params: {'freelancer_id_input': widget.freelancerId},
+    );
     if (response == null) return null;
     final profile = Map<String, dynamic>.from(response as Map);
-    profile['avatar_url'] = await _resolveAvatar(profile['avatar_url'] as String?);
-    final portfolioRows = await client.from('portfolio_items').select().eq('freelancer_id', widget.freelancerId).order('created_at', ascending: false).limit(20);
-    final experienceRows = await client.from('experience').select().eq('freelancer_id', widget.freelancerId).order('created_at', ascending: false).limit(10);
-    final reviewRows = await client.from('reviews').select('rating, comment, created_at').eq('reviewee_id', widget.freelancerId).order('created_at', ascending: false).limit(10);
-    profile['portfolio'] = (portfolioRows as List).map((row) => Map<String, dynamic>.from(row as Map)).toList();
-    profile['experience'] = (experienceRows as List).map((row) => Map<String, dynamic>.from(row as Map)).toList();
-    profile['reviews'] = (reviewRows as List).map((row) => Map<String, dynamic>.from(row as Map)).toList();
+    profile['avatar_url'] = await _resolveAvatar(
+      profile['avatar_url'] as String?,
+    );
+    final portfolioRows = await client
+        .from('portfolio_items')
+        .select()
+        .eq('freelancer_id', widget.freelancerId)
+        .order('created_at', ascending: false)
+        .limit(20);
+    final experienceRows = await client
+        .from('experience')
+        .select()
+        .eq('freelancer_id', widget.freelancerId)
+        .order('created_at', ascending: false)
+        .limit(10);
+    final reviewRows = await client
+        .from('reviews')
+        .select('rating, comment, created_at')
+        .eq('reviewee_id', widget.freelancerId)
+        .order('created_at', ascending: false)
+        .limit(10);
+    profile['portfolio'] = (portfolioRows as List)
+        .map((row) => Map<String, dynamic>.from(row as Map))
+        .toList();
+    profile['experience'] = (experienceRows as List)
+        .map((row) => Map<String, dynamic>.from(row as Map))
+        .toList();
+    profile['reviews'] = (reviewRows as List)
+        .map((row) => Map<String, dynamic>.from(row as Map))
+        .toList();
     return profile;
   }
 
@@ -51,9 +83,20 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen> {
       appBar: AppBar(
         title: const Text('Freelancer Profile'),
         actions: [
+          ReportAction(
+            targetType: 'freelancer',
+            targetId: widget.freelancerId,
+            targetName: 'freelancer',
+          ),
           IconButton(
+            tooltip: 'Share profile',
             icon: const Icon(Icons.share_outlined),
-            onPressed: () {},
+            onPressed: () => SharePlus.instance.share(
+              ShareParams(
+                uri: Uri.base.resolve('/freelancer/${widget.freelancerId}'),
+                subject: 'Freelancer profile on WorkSphere',
+              ),
+            ),
           ),
         ],
       ),
@@ -72,7 +115,10 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen> {
                   children: [
                     const Text('Unable to load freelancer profile.'),
                     const SizedBox(height: 12),
-                    OutlinedButton(onPressed: _refresh, child: const Text('Retry')),
+                    OutlinedButton(
+                      onPressed: _refresh,
+                      child: const Text('Retry'),
+                    ),
                   ],
                 ),
               ),
@@ -85,10 +131,14 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen> {
           }
 
           final avatarUrl = profile['avatar_url'] as String?;
-          final paymentMethod = profile['payment_method'] as Map<String, dynamic>? ?? const {};
-          final verified = (profile['verification_status'] as String?) == 'approved';
+          final paymentMethod =
+              profile['payment_method'] as Map<String, dynamic>? ?? const {};
+          final verified =
+              (profile['verification_status'] as String?) == 'approved';
           final hasPaymentMethod = profile['has_payment_method'] == true;
-          final completion = (profile['profile_completion'] as num?)?.clamp(0, 100).toInt() ?? 0;
+          final completion =
+              (profile['profile_completion'] as num?)?.clamp(0, 100).toInt() ??
+              0;
           final location = _compact([
             profile['city_profile'],
             profile['district'],
@@ -112,34 +162,51 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen> {
                   completion: completion,
                   hasPaymentMethod: hasPaymentMethod,
                 ),
-                _infoCard(
-                  'Account details',
-                  [
-                    _infoRow('Location', location),
-                    _infoRow('Availability', profile['availability'] as String?),
-                    _infoRow('Preferred work type', profile['preferred_work_type'] as String?),
-                    _infoRow('Experience level', profile['experience_level'] as String?),
-                  ],
-                ),
-                _infoCard(
-                  'Professional expertise',
-                  [
-                    _infoRow('Skills', _listText(profile['languages'])),
-                    _infoRow('Certifications', profile['certifications'] as String?),
-                    _infoRow('Portfolio link', profile['portfolio_url'] as String?),
-                  ],
-                ),
-                if (hasPaymentMethod)
-                  _infoCard(
-                    'Payment availability',
-                    [
-                      _infoRow('Status', paymentMethod['status'] as String?),
-                      const Text('UPI Payment Available'),
-                    ],
+                _infoCard('Account details', [
+                  _infoRow('Location', location),
+                  _infoRow('Availability', profile['availability'] as String?),
+                  _infoRow(
+                    'Preferred work type',
+                    profile['preferred_work_type'] as String?,
                   ),
-                _listCard('Portfolio', (profile['portfolio'] as List).cast<Map<String, dynamic>>(), (item) => '${item['title'] ?? ''}\n${item['description'] ?? ''}'),
-                _listCard('Experience', (profile['experience'] as List).cast<Map<String, dynamic>>(), (item) => '${item['title'] ?? ''} • ${item['company'] ?? ''}'),
-                _listCard('Reviews', (profile['reviews'] as List).cast<Map<String, dynamic>>(), (item) => '${item['rating'] ?? ''} stars\n${item['comment'] ?? ''}'),
+                  _infoRow(
+                    'Experience level',
+                    profile['experience_level'] as String?,
+                  ),
+                ]),
+                _infoCard('Professional expertise', [
+                  _infoRow('Skills', _listText(profile['languages'])),
+                  _infoRow(
+                    'Certifications',
+                    profile['certifications'] as String?,
+                  ),
+                  _infoRow(
+                    'Portfolio link',
+                    profile['portfolio_url'] as String?,
+                  ),
+                ]),
+                if (hasPaymentMethod)
+                  _infoCard('Payment availability', [
+                    _infoRow('Status', paymentMethod['status'] as String?),
+                    const Text('UPI Payment Available'),
+                  ]),
+                _listCard(
+                  'Portfolio',
+                  (profile['portfolio'] as List).cast<Map<String, dynamic>>(),
+                  (item) =>
+                      '${item['title'] ?? ''}\n${item['description'] ?? ''}',
+                ),
+                _listCard(
+                  'Experience',
+                  (profile['experience'] as List).cast<Map<String, dynamic>>(),
+                  (item) => '${item['title'] ?? ''} • ${item['company'] ?? ''}',
+                ),
+                _listCard(
+                  'Reviews',
+                  (profile['reviews'] as List).cast<Map<String, dynamic>>(),
+                  (item) =>
+                      '${item['rating'] ?? ''} stars\n${item['comment'] ?? ''}',
+                ),
               ],
             ),
           );
@@ -172,8 +239,12 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen> {
               children: [
                 CircleAvatar(
                   radius: 42,
-                  backgroundImage: avatarUrl == null ? null : NetworkImage(avatarUrl),
-                  child: avatarUrl == null ? Text(_initials(name), style: theme.textTheme.titleLarge) : null,
+                  backgroundImage: avatarUrl == null
+                      ? null
+                      : NetworkImage(avatarUrl),
+                  child: avatarUrl == null
+                      ? Text(_initials(name), style: theme.textTheme.titleLarge)
+                      : null,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -183,11 +254,22 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen> {
                       Text(name, style: theme.textTheme.headlineSmall),
                       if (title != null && title.trim().isNotEmpty) ...[
                         const SizedBox(height: 4),
-                        Text(title, style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary)),
+                        Text(
+                          title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
                       ],
                       if (location != 'Not added') ...[
                         const SizedBox(height: 6),
-                        Row(children: [const Icon(Icons.location_on_outlined, size: 16), const SizedBox(width: 4), Expanded(child: Text(location))]),
+                        Row(
+                          children: [
+                            const Icon(Icons.location_on_outlined, size: 16),
+                            const SizedBox(width: 4),
+                            Expanded(child: Text(location)),
+                          ],
+                        ),
                       ],
                     ],
                   ),
@@ -204,16 +286,26 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen> {
               runSpacing: 8,
               children: [
                 Chip(
-                  avatar: Icon(verified ? Icons.verified : Icons.verified_outlined, color: verified ? Colors.green : null, size: 18),
+                  avatar: Icon(
+                    verified ? Icons.verified : Icons.verified_outlined,
+                    color: verified ? Colors.green : null,
+                    size: 18,
+                  ),
                   label: Text(verified ? 'Verified' : 'Not verified'),
                 ),
-                if (hasPaymentMethod) const Chip(label: Text('UPI payment available')),
+                if (hasPaymentMethod)
+                  const Chip(label: Text('UPI payment available')),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: Text('Profile completion', style: theme.textTheme.labelLarge)),
+                Expanded(
+                  child: Text(
+                    'Profile completion',
+                    style: theme.textTheme.labelLarge,
+                  ),
+                ),
                 Text('$completion%', style: theme.textTheme.labelLarge),
               ],
             ),
@@ -277,28 +369,48 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 150, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600))),
-          Expanded(child: Text((value == null || value.trim().isEmpty) ? 'Not added' : value)),
+          SizedBox(
+            width: 150,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              (value == null || value.trim().isEmpty) ? 'Not added' : value,
+            ),
+          ),
         ],
       ),
     );
   }
 
   String _compact(List<Object?> values) {
-    final parts = values.where((value) => value != null && value.toString().trim().isNotEmpty).map((value) => value.toString().trim()).toList();
+    final parts = values
+        .where((value) => value != null && value.toString().trim().isNotEmpty)
+        .map((value) => value.toString().trim())
+        .toList();
     return parts.isEmpty ? 'Not added' : parts.join(', ');
   }
 
   String _listText(Object? value) {
     if (value is List) {
-      final parts = value.map((item) => item.toString().trim()).where((item) => item.isNotEmpty).toList();
+      final parts = value
+          .map((item) => item.toString().trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
       return parts.isEmpty ? 'Not added' : parts.join(', ');
     }
     return value?.toString() ?? 'Not added';
   }
 
   String _initials(String name) {
-    final parts = name.trim().split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
     if (parts.isEmpty) return '?';
     if (parts.length == 1) return parts.first[0].toUpperCase();
     return '${parts.first[0]}${parts.last[0]}'.toUpperCase();

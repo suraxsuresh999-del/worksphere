@@ -16,8 +16,15 @@ class WorkSphereApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final locale = ref.watch(localeProvider);
+    final themeMode = ref.watch(themeModeProvider);
+    final flutterThemeMode = switch (themeMode) {
+      ThemeModeState.light => ThemeMode.light,
+      ThemeModeState.dark => ThemeMode.dark,
+      ThemeModeState.system => ThemeMode.system,
+    };
     final connectivity = ref.watch(connectivityStatusProvider);
-    final isOnline = connectivity.valueOrNull?.isNotEmpty != false &&
+    final isOnline =
+        connectivity.valueOrNull?.isNotEmpty != false &&
         !(connectivity.valueOrNull?.contains(ConnectivityResult.none) ?? false);
 
     if (!isOnline) {
@@ -25,8 +32,8 @@ class WorkSphereApp extends ConsumerWidget {
         title: 'WorkSphere',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
-        darkTheme: AppTheme.light,
-        themeMode: ThemeMode.light,
+        darkTheme: AppTheme.dark,
+        themeMode: flutterThemeMode,
         home: const OfflineScreen(),
       );
     }
@@ -36,8 +43,8 @@ class WorkSphereApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
 
       theme: AppTheme.light,
-      darkTheme: AppTheme.light,
-      themeMode: ThemeMode.light,
+      darkTheme: AppTheme.dark,
+      themeMode: flutterThemeMode,
 
       locale: Locale(locale),
       supportedLocales: const [Locale('en'), Locale('ta')],

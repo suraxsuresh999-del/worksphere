@@ -73,15 +73,37 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
                   itemBuilder: (context, index) {
                     final job = jobs[index];
                     return Card(
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        title: Text(job['title'] as String? ?? 'Untitled job'),
-                        subtitle: Text(
-                          '${job['description'] ?? ''}\n₹${job['budget_min'] ?? '-'} – ₹${job['budget_max'] ?? '-'}\n${job['status'] ?? 'draft'}',
-                        ),
-                        isThreeLine: true,
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: () => context.push('/job/${job['id']}'),
+                      child: Column(
+                        children: [
+                          ListTile(
+                            contentPadding: const EdgeInsets.all(16),
+                            title: Text(
+                              job['title'] as String? ?? 'Untitled job',
+                            ),
+                            subtitle: Text(
+                              '${job['description'] ?? ''}\n₹${job['budget_min'] ?? '-'} – ₹${job['budget_max'] ?? '-'}\n${job['status'] ?? 'draft'}',
+                            ),
+                            isThreeLine: true,
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () => context.push('/job/${job['id']}'),
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                right: 12,
+                                bottom: 8,
+                              ),
+                              child: TextButton.icon(
+                                onPressed: () => context.push(
+                                  '/job/${job['id']}/applications',
+                                ),
+                                icon: const Icon(Icons.groups_outlined),
+                                label: const Text('View applications'),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },
